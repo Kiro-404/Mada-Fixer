@@ -10,7 +10,7 @@ This file maps every hackathon rule to what is in the repository and what still 
 |---|---|---|
 | **One public repository** | ⚠️ ACTION | Push this repo to a **public** GitHub repository. Do not initialize it as private and flip it later without checking the submission link. |
 | **Open source** | ✅ | [MIT LICENSE](../LICENSE); dependencies are MIT/Apache-2.0 (Playwright, axe-core, diff, pngjs, pixelmatch). |
-| **New work only, built Oct 27 – Nov 4** | ✅ | The repository is created during the building period; the first commit and `git log --date=iso` are the record. Do not import code from another project. |
+| **New work only, built Oct 27 – Nov 4** | ✅ | Created 2026-10-30; first commit `58548a0` at 2026-10-30 21:42 UTC. `git log --date=iso` is the record. Do not import code from another project. |
 | **Clearly identify what was built during the Hackathon** | ✅ | README + demo video show the pipeline end to end; there is no pre-existing product around it. State this in the submission description. |
 | **Must use Meta models** | ✅ | Muse Spark 1.3 (understand + critic), Muse Wonder 1.0 (source patch), SAM 3.1 (visual discovery) through the Meta Model API. `npm run check` verifies all three. `report.json` prints calls/cost per run. |
 | **Demo video, 3 minutes max** | ⚠️ ACTION | Record with [DEMO_SCRIPT.md](DEMO_SCRIPT.md), upload (e.g. unlisted YouTube), check the link in an incognito window. Show only features built here. |
@@ -23,6 +23,21 @@ This file maps every hackathon rule to what is in the repository and what still 
 | **Repositories accessible to judges** | ⚠️ ACTION | Public repo, working `README`, no `.env`, no `out/`, no `.cache/` committed. |
 
 Legend: ✅ in the repo · ⚠️ needs the participant.
+
+## Local verification (2026-10-30)
+
+Run on the machine that built the submission, before the first commit:
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | pass |
+| `npm run units` | 31/31 pass |
+| `npm run smoke` (real Chromium + axe-core, mock model) | 15/15 pass; targeted 14 → 0, nameless 6 → 0, 0 moved; repo patch applies with `git apply` |
+| `npm run robust` | 6/6 pass (strict CSP, hanging page, invalid model JSON) |
+| Read-only audit of real sites (`eval/run-eval.ts --audit`) | 3 of 4 completed; one navigation timeout recorded, Wikipedia screenshot fallback recorded, no site changed |
+| Secret scan + `git status --ignored` | no key or `.env` in history; only `node_modules/`, `.cache/`, `out/`, `eval/results.csv` ignored |
+
+The smoke numbers use the mock model and must not be quoted as live model quality.
 
 ## Why this project is allowed
 
