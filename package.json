@@ -1,0 +1,33 @@
+{
+ "name": "mada-fixer",
+ "version": "0.1.0",
+ "type": "module",
+ "scripts": {
+  "serve": "tsx server.ts",
+  "fix": "tsx cli.ts",
+  "check": "tsx scripts/check-models.ts",
+  "typecheck": "tsc --noEmit",
+  "eval": "tsx eval/run-eval.ts",
+  "demo": "tsx test/demo-run.ts",
+  "demo:video": "tsx scripts/record-demo.ts",
+  "smoke": "tsx test/smoke.ts",
+  "units": "tsx test/units.ts",
+  "quality": "tsx eval/quality.ts",
+  "score": "tsx eval/score.ts",
+  "test:open": "tsx test/open.ts",
+  "test:robust": "tsx test/robust.ts"
+ },
+ "dependencies": {
+  "axe-core": "^4.10.0",
+  "playwright": "^1.48.0",
+  "pixelmatch": "^7.1.0",
+  "pngjs": "^7.0.0",
+  "diff": "^8.0.2"
+ },
+ "devDependencies": {
+  "@types/node": "^22.0.0",
+  "tsx": "^4.19.0",
+  "typescript": "^5.6.0",
+  "@types/pngjs": "^6.0.5"
+ }
+}
