@@ -1,7 +1,31 @@
 {
  "name": "mada-fixer",
  "version": "0.1.0",
+ "description": "Accessibility agent for Arabic websites: audits with axe-core, writes Arabic labels with Meta models, fixes the DOM and the source, and verifies the result.",
  "type": "module",
+ "license": "MIT",
+ "author": "Mada Fixer contributors",
+ "repository": {
+  "type": "git",
+  "url": "git+https://github.com/Kiro-404/Mada-Fixer.git"
+ },
+ "homepage": "https://github.com/Kiro-404/Mada-Fixer#readme",
+ "bugs": {
+  "url": "https://github.com/Kiro-404/Mada-Fixer/issues"
+ },
+ "keywords": [
+  "accessibility",
+  "a11y",
+  "arabic",
+  "rtl",
+  "wcag",
+  "axe-core",
+  "playwright",
+  "meta-ai"
+ ],
+ "engines": {
+  "node": ">=20"
+ },
  "scripts": {
   "serve": "tsx server.ts",
   "fix": "tsx cli.ts",
