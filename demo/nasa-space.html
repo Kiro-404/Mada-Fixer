@@ -1,0 +1,253 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!-- ❌ مخالفة إتاحة: منع التكبير باللمس user-scalable=no -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <!-- ❌ مخالفة إتاحة: غياب عنوان الصفحة <title> واللغة lang في html -->
+  <style>
+    /* ❌ مخالفة إتاحة: إلغاء محدد التركيز outline للوحة المفاتيح */
+    * { outline: none !important; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      direction: rtl;
+      background: #f8fafc;
+      color: #1e293b;
+    }
+    header {
+      background: #0b132b;
+      color: white;
+      padding: 16px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+    }
+    /* ❌ مخالفة إتاحة: أزرار تحتوي فقط على إيموجي بدون أي نص أو aria-label */
+    button.icon-btn {
+      background: #1c2541;
+      border: 1px solid #3a506b;
+      color: #fff;
+      font-size: 20px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    
+    .hero {
+      background: linear-gradient(135deg, #0b132b 0%, #1c2541 100%);
+      color: white;
+      padding: 48px 24px;
+      text-align: center;
+    }
+    .hero h2 {
+      font-size: 32px;
+      margin-bottom: 12px;
+      color: #ffffff;
+    }
+    /* ❌ مخالفة إتاحة شديدة: نص غير مقروء ذو تباين منخفض جداً (#8892b0 على خلفية كحلية) */
+    .hero p {
+      color: #8892b0;
+      font-size: 16px;
+      max-width: 600px;
+      margin: 0 auto 24px;
+    }
+    /* ❌ مخالفة إتاحة: صورة رئيسية بدون نص بديل alt */
+    .hero img {
+      width: 100%;
+      max-width: 520px;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 32px auto;
+      padding: 0 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+    }
+    /* ❌ مخالفة إتاحة: صور تذاكر وبطاقات بدون alt */
+    .card img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      color: #0f172a;
+    }
+    /* ❌ مخالفة إتاحة: نصوص رمادية باهتة جداً تباينها ضعيف (#b0b7c3 على أبيض) */
+    .card .desc {
+      color: #b0b7c3;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    /* ❌ مخالفة إتاحة: أسعار بلون برتقالي فاتح غير واضح (#f6ad55 على أبيض) */
+    .card .price {
+      color: #f6ad55;
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: auto;
+      margin-bottom: 16px;
+    }
+
+    /* ❌ مخالفة إتاحة خطيرة: div يتصرف كزر بالضغط بالفأرة لكنه لا يعمل بلوحة المفاتيح وليس له role="button" ولا tabindex */
+    .cta-div {
+      background: #3b82f6;
+      color: white;
+      text-align: center;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .cta-div:hover {
+      background: #2563eb;
+    }
+
+    /* نموذج تسجيل غير متاح */
+    .booking-box {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 28px;
+      margin-top: 40px;
+    }
+    .booking-box h3 {
+      margin-top: 0;
+      color: #0f172a;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    /* ❌ مخالفة إتاحة: حقول إدخال بدون label ولا aria-label */
+    input[type="text"], input[type="email"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    footer {
+      background: #0b132b;
+      color: #64748b;
+      text-align: center;
+      padding: 24px;
+      margin-top: 60px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <!-- ❌ لا يوجد رابط تخطي (Skip Link) ولا معالم الصفحة الرئيسية landmark role="main" -->
+
+  <header>
+    <div class="brand">
+      <!-- ❌ رابط صورة بدون alt ونص -->
+      <a href="/"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2'%3E%3Cpath d='M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z'/%3E%3Cpath d='m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z'/%3E%3C/svg%3E"></a>
+      <h1>بوابة رحلات الفضاء والمريخ</h1>
+    </div>
+    <div class="nav-actions">
+      <!-- ❌ أزرار بدون أسماء واضحة لقارئ الشاشة -->
+      <button class="icon-btn" onclick="void 0">🔍</button>
+      <button class="icon-btn" onclick="void 0">🪐</button>
+      <button class="icon-btn" onclick="void 0">🎫</button>
+    </div>
+  </header>
+
+  <div class="hero">
+    <h2>استكشف الكواكب مع رواد الفضاء</h2>
+    <!-- ❌ نص تباين منخفض جداً (رمادي على أزرق ليلي) -->
+    <p>انطلق في رحلة استثنائية لمدار المريخ وتجربة انعدام الجاذبية في محطة الفضاء الدولية</p>
+    <!-- ❌ صورة البانر بدون نص بديل alt -->
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='240' viewBox='0 0 600 240'%3E%3Crect width='600' height='240' fill='%231e293b'/%3E%3Ccircle cx='300' cy='120' r='60' fill='%23ea580c'/%3E%3Ccircle cx='360' cy='90' r='14' fill='%23fed7aa'/%3E%3Ctext x='300' y='210' fill='%2394a3b8' font-size='16' font-family='sans-serif' text-anchor='middle'%3Eكوكب المريخ - مهمة ناسا الاستكشافية%3C/text%3E%3C/svg%3E">
+  </div>
+
+  <div class="container">
+    <div class="grid">
+      <div class="card">
+        <!-- ❌ بدون alt -->
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='140' viewBox='0 0 300 140'%3E%3Crect width='300' height='140' fill='%230284c7'/%3E%3Ccircle cx='150' cy='70' r='35' fill='%2338bdf8'/%3E%3Ctext x='150' y='125' fill='white' font-size='14' font-family='sans-serif' text-anchor='middle'%3Eمدار الأرض المنخفض%3C/text%3E%3C/svg%3E">
+        <h3>جولة مدار الأرض المنخفض</h3>
+        <!-- ❌ نص رمادي باهت ذو تباين منخفض جداً -->
+        <div class="desc">شاهد شروق الشمس ١٦ مرة في يوم واحد من ارتفاع ٤٠٠ كم فوق سطح الكوكب.</div>
+        <div class="price">٥٥,٠٠٠ دولار</div>
+        <!-- ❌ div تفاعلي بدون إمكانية وصول باللوحة المفاتيح -->
+        <div class="cta-div" onclick="alert('تم اختيار رحلة المدار')">احجز التذكرة الآن</div>
+      </div>
+
+      <div class="card">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='140' viewBox='0 0 300 140'%3E%3Crect width='300' height='140' fill='%23b91c1c'/%3E%3Ccircle cx='150' cy='70' r='40' fill='%23f87171'/%3E%3Ctext x='150' y='125' fill='white' font-size='14' font-family='sans-serif' text-anchor='middle'%3Eقاعدة المريخ الأولى%3C/text%3E%3C/svg%3E">
+        <h3>مغامرة الكوكب الأحمر</h3>
+        <div class="desc">هبوط تجريبي على سطح المريخ وتجربة بدلات الفضاء الجديدة والتنقل بالمركبة.</div>
+        <div class="price">١٢٠,٠٠٠ دولار</div>
+        <div class="cta-div" onclick="alert('تم اختيار رحلة المريخ')">احجز التذكرة الآن</div>
+      </div>
+
+      <div class="card">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='140' viewBox='0 0 300 140'%3E%3Crect width='300' height='140' fill='%234338ca'/%3E%3Cpolygon points='150,25 180,95 120,95' fill='%23818cf8'/%3E%3Ctext x='150' y='125' fill='white' font-size='14' font-family='sans-serif' text-anchor='middle'%3Eتلسكوب جيمس ويب%3C/text%3E%3C/svg%3E">
+        <h3>رحلة رصد أعماق الكون</h3>
+        <div class="desc">مشاهدة النجوم والمجرات الأولى مباشرة من منصة المراقبة بالقرب من التلسكوب.</div>
+        <div class="price">٨٥,٠٠٠ دولار</div>
+        <div class="cta-div" onclick="alert('تم اختيار رحلة التلسكوب')">احجز التذكرة الآن</div>
+      </div>
+    </div>
+
+    <div class="booking-box">
+      <h3>طلب استشارة رائد فضاء</h3>
+      <p style="color:#a0aec0;font-size:13px">املأ البيانات وسيقوم فريق وكالة الفضاء بالتواصل معك خلال ٢٤ ساعة.</p>
+      
+      <!-- ❌ حقول بدون labels -->
+      <div class="form-group">
+        <input type="text" placeholder="الاسم الكامل لرائد الفضاء المستقبلي">
+      </div>
+      <div class="form-group">
+        <input type="email" placeholder="البريد الإلكتروني للتواصل والتأكيد">
+      </div>
+      <div class="cta-div" style="max-width:200px" onclick="alert('تم إرسال الطلب بنجاح!')">إرسال الطلب</div>
+    </div>
+  </div>
+
+  <footer>
+    جميع الحقوق محفوظة &copy; برنامج رحلات الفضاء العربي ٢٠٢٦
+  </footer>
+</body>
+</html>

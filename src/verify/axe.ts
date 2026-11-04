@@ -1,35 +1,41 @@
-import type { Page } from "playwright";
-import { readFileSync } from "node:fs";
+import type { Frame, Page } from "playwright";
 import { createRequire } from "node:module";
 import type { Issue } from "../types.js";
 import { scan } from "./scan.js";
 
 const require = createRequire(import.meta.url);
-export const AXE_PATH = require.resolve("axe-core/axe.min.js");
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"];
 // Rule ids this agent can fix; used for the "targeted issues" headline number.
 export const TARGETED = new Set(["image-alt", "button-name", "link-name", "label", "select-name", "html-has-lang", "html-lang-valid", "symbol-only-name", "color-contrast",
   "document-title", "meta-viewport", "frame-title", "svg-img-alt", "role-img-alt", "object-alt", "empty-heading", "input-image-alt", "area-alt",
   "aria-command-name", "aria-input-field-name", "aria-toggle-field-name", "aria-dialog-name", "landmark-one-main", "custom-control", "focus-invisible"]);
 
-async function ensureAxe(page: Page) {
-  if (await page.evaluate(() => "axe" in window)) return;
+// Each frame is tested on its own: axe's cross-frame messaging reports "frame-tested" and skips many iframes (ads, embeds, srcdoc).
+// Problems found inside frames or shadow roots cannot be patched from the main page, so they are listed as "nested:<rule>" for a human.
+async function collect(frame: Frame, nested: boolean): Promise<Issue[]> {
   try {
-    await page.addScriptTag({ path: AXE_PATH });
+    const hasAxe = await frame.evaluate(() => "axe" in window).catch(() => false);
+    if (!hasAxe) {
+      await frame.addScriptTag({ path: require.resolve("axe-core/axe.min.js") }).catch(async () => {
+        const source = (require("axe-core") as any).source;
+        if (source) await frame.evaluate(source).catch(() => {});
+      });
+    }
+    const found: Issue[] = await frame.evaluate(async (tags) => {
+      if (!(window as any).axe?.run) return [];
+      const res = await (window as any).axe.run(document, { runOnly: { type: "tag", values: tags }, iframes: false });
+      return res.violations.flatMap((v: any) =>
+        v.nodes.map((n: any) => ({ id: Array.isArray(n.target[0]) ? "nested:" + v.id : v.id, impact: v.impact, selector: String(n.target[0]), html: String(n.html), data: n.any?.[0]?.data ?? null, help: v.help })));
+    }, TAGS);
+    return nested ? found.map((i) => ({ ...i, id: i.id.startsWith("nested:") ? i.id : "nested:" + i.id })) : found;
   } catch {
-    // A strict style/script CSP can block addScriptTag; CDP evaluate() is not subject to page CSP.
-    await page.evaluate(readFileSync(AXE_PATH, "utf8"));
+    return [];
   }
-  if (!(await page.evaluate(() => "axe" in window))) throw new Error("could not load axe-core (page blocked script injection)");
 }
 
 export async function runAxe(page: Page): Promise<Issue[]> {
-  await ensureAxe(page);
-  const found: Issue[] = await page.evaluate(async (tags) => {
-    const res = await (window as any).axe.run(document, { runOnly: { type: "tag", values: tags } });
-    return res.violations.flatMap((v: any) =>
-      v.nodes.map((n: any) => ({ id: v.id, impact: v.impact, selector: String(n.target[0]), html: String(n.html), data: n.any?.[0]?.data ?? null, help: v.help })));
-  }, TAGS);
+  const found = await collect(page.mainFrame(), false);
+  for (const f of page.frames()) if (f !== page.mainFrame()) found.push(...(await collect(f, true).catch(() => [])));
   // axe accepts a button whose only content is "🔍" as named. A screen reader reads that as noise, so flag it.
   const symbols: Issue[] = await page.evaluate(() => {
     const out: any[] = [];
@@ -41,13 +47,14 @@ export async function runAxe(page: Page): Promise<Issue[]> {
       out.push({ id: "symbol-only-name", impact: "moderate", selector: `[data-mada="s${i}"]`, html: el.outerHTML.slice(0, 300).replace(/ data-mada="[^"]*"/g, "") });
     });
     return out;
-  });
-  return [...found, ...symbols, ...(await arabicContrast(page, found.map((i) => i.selector))), ...(await scan(page))];
+  }).catch(() => []);
+  const arabContrast = await arabicContrast(page, found.filter((i) => !i.id.startsWith("nested:")).map((i) => i.selector)).catch(() => []);
+  const customScans = await scan(page).catch(() => []);
+  return [...found, ...symbols, ...arabContrast, ...customScans];
 }
 
-// axe-core 4.14 treats some joined Arabic text as an icon-font ligature (text.isIconLigature) and skips it in
-// color-contrast for some fonts/phrases, so low-contrast Arabic text can go unreported. This scan covers elements
-// whose own text is Arabic. Verify with your browser/fonts; see docs/ARABIC-CONTRAST.md.
+// axe-core 4.14 treats joined Arabic script as an icon-font ligature (text.isIconLigature returns true) and skips it in
+// color-contrast, so low-contrast Arabic text is never reported. This scan covers elements whose own text is Arabic.
 async function arabicContrast(page: Page, known: string[]): Promise<Issue[]> {
   return page.evaluate((known) => {
     type C = [number, number, number, number];
@@ -67,7 +74,7 @@ async function arabicContrast(page: Page, known: string[]): Promise<Issue[]> {
       let skip = false, node: Element | null = el;
       while (node) {
         const s = getComputedStyle(node);
-        if (Number(s.opacity) < 1 || s.backgroundImage !== "none") { skip = true; break; }
+        if (Number(s.opacity) < 1 || (s.backgroundImage !== "none" && node !== el) || s.backgroundImage !== "none") { skip = true; break; }
         const bg = rgba(s.backgroundColor);
         if (bg && bg[3] > 0) { layers.push(bg); if (bg[3] >= 1) break; }
         node = node.parentElement;

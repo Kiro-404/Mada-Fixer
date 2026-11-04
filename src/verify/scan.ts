@@ -53,6 +53,11 @@ async function customControls(page: Page): Promise<Issue[]> {
 async function focusInvisible(page: Page): Promise<Issue[]> {
   const total = await page.evaluate(() => {
     const w = window as any;
+    // Reset the sequential-focus start to the top of the document; without this a second probe starts from the
+    // browser chrome and every Tab lands outside the page.
+    document.body.tabIndex = -1;
+    document.body.focus();
+    document.body.removeAttribute("tabindex");
     w.__madaSnap = (e: Element) => { const s = getComputedStyle(e); return [s.outlineStyle, s.outlineWidth, s.outlineColor, s.boxShadow, s.borderTopColor, s.backgroundColor, s.color, s.textDecorationLine].join("|"); };
     w.__madaBase = {};
     const els = Array.from(document.querySelectorAll<HTMLElement>("a[href],button,input:not([type=hidden]),select,textarea,[tabindex]:not([tabindex='-1'])")).filter((e) => e.getClientRects().length && !(e as any).disabled).slice(0, 12);

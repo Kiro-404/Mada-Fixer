@@ -1,28 +1,40 @@
 import { chromium, type Browser, type Page } from "playwright";
-import { envNum } from "./util.js";
 
-const USER_AGENT = process.env.MADA_USER_AGENT ?? "MadaFixer/0.1 (Arabic accessibility audit; read-only; see repository)";
+export const launch = () => chromium.launch({
+  executablePath: process.env.CHROMIUM_PATH || undefined,
+  args: [
+    "--disable-web-security",
+    "--disable-blink-features=TrustedTypes",
+    ...(process.env.CHROMIUM_ARGS?.split(" ").filter(Boolean) || []),
+  ],
+});
 
-export const launch = () =>
-  chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || undefined,
-    headless: process.env.HEADLESS !== "0",
-    args: process.env.CHROMIUM_ARGS?.split(" ").filter(Boolean),
-  });
-
-export async function newPage(browser: Browser): Promise<Page> {
-  // bypassCSP keeps axe-core working on sites that send Content-Security-Policy headers.
-  const context = await browser.newContext({
+export async function newPage(browser: Browser) {
+  const page = await browser.newPage({
+    bypassCSP: true,
     locale: "ar-EG",
     viewport: { width: 1280, height: 900 },
-    bypassCSP: true,
-    reducedMotion: "reduce",
-    userAgent: USER_AGENT,
+    userAgent: process.env.USER_AGENT || undefined,
   });
-  const page = await context.newPage();
-  const timeout = envNum("PAGE_TIMEOUT_MS", 15_000, 1_000, 120_000);
-  page.setDefaultTimeout(timeout);
-  page.setDefaultNavigationTimeout(envNum("NAV_TIMEOUT_MS", 45_000, 3_000, 180_000));
-  await page.addInitScript("window.__name = (f) => f;"); // tsx/esbuild injects __name into evaluate() callbacks
+  page.setDefaultTimeout(15000);
+  await page.addInitScript(`
+    window.__name = (f) => f;
+    if (typeof window !== "undefined" && window.trustedTypes && !window.trustedTypes.defaultPolicy) {
+      try {
+        window.trustedTypes.createPolicy('default', {
+          createHTML: (s) => s,
+          createScript: (s) => s,
+          createScriptURL: (s) => s,
+        });
+      } catch (e) {}
+    }
+  `);
   return page;
+}
+
+// Real sites keep polling or hang on third-party resources: a partially loaded page is still worth checking, so never wait forever.
+export async function openPage(page: Page, url: string) {
+  try { await page.goto(url, { waitUntil: "load", timeout: 30000 }); }
+  catch (e) { if (page.url() === "about:blank") throw e; }
+  await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
 }

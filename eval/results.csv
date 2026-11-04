@@ -1,0 +1,5 @@
+url,category,audit,wcagBefore,wcagAfter,targetedBefore,targetedAfter,applied,review,failed,samFound,unnamedBefore,unnamedAfter,visualDiff,layoutShift,calls,costUsd,warnings,error
+https://ar.wikipedia.org/wiki/%D8%A7%D9%84%D9%84%D8%BA%D8%A9_%D8%A7%D9%84%D8%B9%D8%B1%D8%A8%D9%8A%D8%A9,reference,true,340,340,252,252,0,0,0,0,142,142,0.00000,0,0,0.0000,before: full-page screenshot failed (page.screenshot: Timeout 30000ms exceeded.); using the viewport ; before: no screenshot available; the report shows a placeholder,
+https://www.hindawi.org/,books,true,23,23,11,11,0,0,0,0,0,0,0.00000,0,0,0.0000,,
+https://www.alukah.net/,culture,true,,,,,,,,,,,,,,,,Error: could not open https://www.alukah.net/: page.goto: Timeout 45000ms exceeded.
+https://www.mawdoo3.com/,content,true,40,40,10,10,0,0,0,0,1,1,0.00000,0,0,0.0000,,

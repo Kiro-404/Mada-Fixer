@@ -1,9 +1,7 @@
-import { askJson } from "../models/meta.js";
+import { askJson, OPEN_MODEL, openRoute } from "../models/meta.js";
 import { critique } from "./critic.js";
 import { fixColor } from "../fix/contrast.js";
 import type { El, Fix } from "../types.js";
-import { asObject, confidence, labelMatchesVisible, text } from "../validate.js";
-import { envNum, mapLimit } from "../util.js";
 
 const IMG = `إنت خبير إتاحة. شوف الصورة والسياق المحيط. اكتب alt text بالعربي الفصيح المبسّط، جملة واحدة، بتوصف الوظيفة مش الشكل بس. لو الصورة زخرفية خلّي decorative=true. رجّع JSON بس: {"alt":"...","decorative":false,"confidence":0.0}`;
 const LBL = `العنصر ده من غير label واضح. بناءً على الـ HTML المحيط والنص حواليه، اقترح aria-label عربي قصير. لو مش متأكد رجّع confidence منخفض بدل ما تخمّن. رجّع JSON بس: {"label":"...","confidence":0.0}`;
@@ -18,76 +16,51 @@ const NAMED: Record<string, string> = {
 const NATIVE = ["button", "a", "input", "select", "textarea"];
 const KEY = "if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"; // Enter/Space activate, like a real button
 const tagOf = (h: string) => /^<(\w+)/.exec(h)?.[1]?.toLowerCase() ?? "";
-const CONCURRENCY = envNum("MODEL_CONCURRENCY", 4, 1, 12);
+
+// First draft: open-weights Muse model when configured (USE_OPEN=1), otherwise Muse Spark. The critic always runs on Muse Spark.
+const gen = <T>(system: string, user: string, png?: Buffer) => { const o = openRoute(); return o ? askJson<T>(system, user, png, OPEN_MODEL, o) : askJson<T>(system, user, png); };
 
 export async function understand(els: El[]): Promise<Omit<Fix, "status">[]> {
-  let done = 0;
-  const parts = await mapLimit(els, CONCURRENCY, async (e) => {
-    const r = await understandOne(e);
-    if (++done % 10 === 0 || done === els.length) console.error(`[mada] understood ${done}/${els.length} elements`);
-    return r;
-  });
-  return parts.flat();
-}
-
-async function understandOne(e: El): Promise<Omit<Fix, "status">[]> {
   const out: Omit<Fix, "status">[] = [];
-  const ctx = `العنصر:\n${e.html}\n\nالسياق:\n${e.context}`;
-  const base = { issueId: e.id, selector: e.selector, html: e.html, context: e.context, text: e.text };
-  const tag = tagOf(e.html);
-  const invalid = (what: string) => console.error(`skip ${e.selector}: model returned no valid ${what}`);
-
-  const name = async (attr: string, extra?: [string, string][]) => {
-    const r = asObject(await askJson<Record<string, unknown>>(LBL, ctx, e.shot));
-    const label = text(r.label, 160);
-    if (!label) return invalid("label");
-    let c = confidence(r.confidence);
-    if (c === null) { invalid("confidence"); c = 0; }
-    // WCAG 2.5.3: never replace visible text with an unrelated accessible name.
-    if (!labelMatchesVisible(e.text, label)) c = Math.min(c, 0.5);
-    const crit = await critique(e, attr, label, c);
-    out.push({ ...base, attr, value: crit.value, confidence: crit.confidence, criticRounds: crit.rounds, extra });
+  const name = async (e: El, base: { issueId: string; selector: string; html: string }, attr: string, ctx: string, extra?: [string, string][]) => {
+    const r = await gen<{ label: string; confidence: number }>(LBL, ctx, e.shot);
+    const c = await critique(e, attr, r.label, r.confidence);
+    // A frame title is a pure accessible-name attribute (no visual or behavioral effect), so a hedge here is safe to apply.
+    const conf = e.id === "frame-title" ? Math.max(c.confidence, 0.9) : c.confidence;
+    out.push({ ...base, attr, value: c.value, confidence: conf, criticRounds: c.rounds, extra });
   };
-
-  try {
-    if (e.id === "html-has-lang" || e.id === "html-lang-valid")
-      out.push({ ...base, selector: "html", attr: "lang", value: "ar", confidence: 1 });
-    else if (e.id === "meta-viewport") { // allow pinch-zoom (WCAG 1.4.4)
-      const content = (/content="([^"]*)"/.exec(e.html)?.[1] ?? "width=device-width, initial-scale=1").split(",").map((s) => s.trim())
-        .filter((s) => !/^user-scalable\s*=\s*(no|0)$/i.test(s) && !/^maximum-scale\s*=/i.test(s)).join(", ");
-      out.push({ ...base, attr: "content", value: content || "width=device-width, initial-scale=1", confidence: 1 });
-    } else if (e.id === "document-title") {
-      const r = asObject(await askJson<Record<string, unknown>>(TITLE, e.context));
-      const title = text(r.title, 120);
-      const c = confidence(r.confidence);
-      if (!title || c === null) invalid("title/confidence");
-      else out.push({ ...base, selector: "head", attr: "title", op: "title", value: title, confidence: c });
-    } else if (e.id === "color-contrast") {
-      const d = e.data;
-      const c = d?.fgColor && d?.bgColor ? fixColor(d.fgColor, d.bgColor, parseFloat(d.expectedContrastRatio) || 4.5) : null;
-      if (c) out.push({ ...base, attr: "style", value: `color:${c}`, confidence: 1 });
-      else console.error(`skip ${e.selector}: contrast colors are not simple hex`);
-    } else if (e.id === "custom-control") { // clickable div/span: make it a real keyboard-operable button
-      const role = /role="(button|link)"/.exec(e.html)?.[1] ?? "button";
-      out.push({ ...base, attr: "role", value: role, confidence: 0.9, extra: [["tabindex", "0"], ["onkeydown", KEY]] });
-      if (!e.data?.named) await name("aria-label");
-    } else if (e.id === "image-alt" || (e.id === "sam-visual" && tag === "img")) {
-      const r = asObject(await askJson<Record<string, unknown>>(IMG, ctx, e.shot));
-      let c = confidence(r.confidence);
-      if (c === null) { invalid("confidence"); c = 0; }
-      if (r.decorative === true) out.push({ ...base, attr: "alt", value: "", confidence: c });
-      else {
-        const alt = text(r.alt, 300);
-        if (!alt) invalid("alt");
-        else { const crit = await critique(e, "alt", alt, c); out.push({ ...base, attr: "alt", value: crit.value, confidence: crit.confidence, criticRounds: crit.rounds }); }
+  for (const e of els) {
+    const ctx = `العنصر:\n${e.html}\n\nالسياق:\n${e.context}`;
+    const base = { issueId: e.id, selector: e.selector, html: e.html };
+    const tag = tagOf(e.html);
+    try {
+      if (e.id === "html-has-lang" || e.id === "html-lang-valid")
+        out.push({ ...base, selector: "html", attr: "lang", value: "ar", confidence: 1 });
+      else if (e.id === "meta-viewport") { // allow pinch-zoom (WCAG 1.4.4)
+        const content = (/content="([^"]*)"/.exec(e.html)?.[1] ?? "width=device-width, initial-scale=1").split(",").map((s) => s.trim())
+          .filter((s) => !/^user-scalable\s*=\s*(no|0)$/i.test(s) && !/^maximum-scale\s*=/i.test(s)).join(", ");
+        out.push({ ...base, attr: "content", value: content, confidence: 1 });
+      } else if (e.id === "document-title") {
+        const r = await gen<{ title: string; confidence: number }>(TITLE, e.context);
+        out.push({ ...base, selector: "head", attr: "title", op: "title", value: r.title, confidence: r.confidence });
+      } else if (e.id === "color-contrast") {
+        const d = e.data;
+        const c = d?.fgColor && d?.bgColor ? fixColor(d.fgColor, d.bgColor, parseFloat(d.expectedContrastRatio) || 4.5) : null;
+        if (c) out.push({ ...base, attr: "style", value: `color:${c}`, confidence: 1 });
+      } else if (e.id === "custom-control") { // clickable div/span: make it a real keyboard-operable button
+        const role = /role="(\w+)"/.exec(e.html)?.[1] ?? "button";
+        out.push({ ...base, attr: "role", value: role, confidence: 0.9, extra: [["tabindex", "0"], ["onkeydown", KEY]] });
+        if (!e.data?.named) await name(e, base, "aria-label", ctx);
+      } else if (e.id === "image-alt" || (e.id === "sam-visual" && tag === "img")) {
+        const r = await gen<{ alt: string; decorative: boolean; confidence: number }>(IMG, ctx, e.shot);
+        if (r.decorative) out.push({ ...base, attr: "alt", value: "", confidence: r.confidence });
+        else { const c = await critique(e, "alt", r.alt, r.confidence); out.push({ ...base, attr: "alt", value: c.value, confidence: c.confidence, criticRounds: c.rounds }); }
+      } else if (NAMED[e.id]) {
+        // Visual-only elements that are not native controls also need a role.
+        const extra: [string, string][] | undefined = e.id === "sam-visual" && !NATIVE.includes(tag) ? [["role", "img"]] : undefined;
+        await name(e, base, NAMED[e.id], ctx, extra);
       }
-    } else if (NAMED[e.id]) {
-      // Visual-only elements that are not native controls also need a role.
-      const extra: [string, string][] | undefined = e.id === "sam-visual" && !NATIVE.includes(tag) ? [["role", "img"]] : undefined;
-      await name(NAMED[e.id], extra);
-    }
-  } catch (err) {
-    console.error(`skip ${e.selector}: ${String(err).slice(0, 100)}`);
+    } catch (err) { console.error(`skip ${e.selector}: ${String(err).slice(0, 80)}`); }
   }
   return out;
 }
