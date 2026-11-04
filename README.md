@@ -114,6 +114,10 @@ npm run serve               # http://localhost:3000
 
 The UI opens the demo, streams the agent's progress, and shows the fixed page and the full report.
 
+<p align="center">
+  <img src="docs/assets/ui.png" alt="Mada Fixer web UI: target URL, Beautify toggle, and a streamed run" width="880">
+</p>
+
 ### Repo mode (source patch + PR)
 
 ```bash
